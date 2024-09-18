@@ -75,9 +75,10 @@ def home(request):
 
     topics = Topic.objects.all()
     room_count = rooms.count()
+    room_messages = Message.objcts.filter(Q(room__topic__name__icontains=q))
 
     context = {'rooms': rooms, 'topics': topics, 
-               'room_count':room_count}
+               'room_count':room_count, 'room_messages': room_messages}
     return render(request, 'base/home.html', context)
 
 
@@ -99,6 +100,15 @@ def room(request, pk):
                'participants': participants}
     return render(request, 'base/room.html', context)
 
+
+def userProfile(request,pk):
+    user = User.objects.get(id=pk)
+    rooms = user.room_set.all()
+    room_messages = user.message_set.all()
+    topics = Topic.objects.all()
+    context = {'user': user, 'rooms': rooms, 
+               'room_messages': room_messages, 'topics' :topics}
+    return render(request, 'base/profile.html', context)
 
 
 @login_required(login_url='login')
@@ -136,15 +146,23 @@ def updateRoom(request, pk):
 @login_required(login_url='login')
 def deleteRoom(request, pk):
     room = Room.objects.get(id=pk)
+    
+    if request.user != room.host:
+        return HttpResponse('Youre not allowed here!!')
+    
     if request.method == 'POST':
         room.delete()
         return redirect('home')
     return render(request, 'base/delete.html', {'obj':room})
 
 @login_required(login_url='login')
-def deleteRoom(request, pk):
-    room = Room.objects.get(id=pk)
+def deleteMessage(request, pk):
+    message = Message.objects.get(id=pk)
+
+    if request.user != room.host:
+        return HttpResponse('Youre not allowed here!!')
+
     if request.method == 'POST':
-        room.delete()
-        return redirect('home')
-    return render(request, 'base/delete.html', {'obj':room})
+       message.delete()
+       return redirect('home')
+    return render(request, 'base/delete.html', {'obj':message})
